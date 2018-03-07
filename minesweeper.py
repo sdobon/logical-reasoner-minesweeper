@@ -11,11 +11,15 @@ from KB_IE import KnowledgeBase
 KB = KnowledgeBase([], [])
 
 _, rule1 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (bomb ?b)) -> (mark_rest_safe ?a)")
-
 _, rule2 = read.parse_input("rule: ((mark_rest_safe ?a) (adjacent ?b ?a) (unvisited ?b)) -> (safe ?b)")
+
+_, rule3 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (not_safe ?b) (adjacent ?c ?a) (safe ?c) (adjacent ?d ?a) (safe ?d) (adjacent ?e ?a) (safe ?e) (adjacent ?f ?a) (safe ?f) (adjacent ?g ?a) (safe ?g) (adjacent ?h ?a) (safe ?h) (adjacent ?i ?a) (safe ?i)) -> (mark_rest_bombs ?a)")
+_, rule4 = read.parse_input("rule: ((mark_rest_bombs ?a) (adjacent ?b ?a) (unvisited ?b)) -> (bomb ?b)")
 
 KB.kb_assert(rule1)
 KB.kb_assert(rule2)
+KB.kb_assert(rule3)
+KB.kb_assert(rule4)
 
 def setupgrid(gridsize, start, numberofmines):
     emptygrid = [['0' for i in range(gridsize)] for i in range(gridsize)]
@@ -74,6 +78,22 @@ def getneighbors(grid, rowno, colno):
                 continue
             elif -1 < (rowno + i) < gridsize and -1 < (colno + j) < gridsize:
                 neighbors.append((rowno + i, colno + j))
+
+    return neighbors
+
+
+def getneighbors_imaginary(grid, rowno, colno):
+    gridsize = len(grid)
+    neighbors = []
+
+    for i in range(-1, 2):
+        for j in range(-1, 2):
+            if i == 0 and j == 0:
+                continue
+            elif -1 < (rowno + i) < gridsize and -1 < (colno + j) < gridsize:
+                neighbors.append([(rowno + i, colno + j), False])
+            else:
+                neighbors.append([(rowno + i, colno + j), "imaginary"])
 
     return neighbors
 
@@ -163,7 +183,9 @@ def look_at_board(gridsize, currgrid):
                 num = int(currgrid[i][j])
                 _, count_fact = read.parse_input("fact: (bomb_count " + str(num) + ' ' + cell_str + ")")
                 KB.kb_assert(count_fact)
-                # print(KB.facts)
+
+                _, not_safe = read.parse_input("fact: (not_safe " + cell_str + ")")
+                KB.kb_retract(not_safe)
 
             except ValueError:
                 pass
@@ -192,11 +214,18 @@ def setup_facts(currgrid):
             cell_str = str(i) + '_' + str(j)
             _, mark_unvisited = read.parse_input("fact: (unvisited " + cell_str + ")")
             KB.kb_assert(mark_unvisited)
-            neighbors = getneighbors(currgrid, i, j)
+
+            _, not_safe = read.parse_input("fact: (not_safe " + cell_str + ")")
+            KB.kb_assert(not_safe)
+
+            neighbors = getneighbors_imaginary(currgrid, i, j)
             for n in neighbors:
-                cell_str_2 = str(n[0]) + '_' + str(n[1])
+                cell_str_2 = str(n[0][0]) + '_' + str(n[0][1])
                 _, adj = read.parse_input("fact: (adjacent " + cell_str_2 + ' ' + cell_str + ")")
                 KB.kb_assert(adj)
+                if n[1] == "imaginary":
+                    _, safe = read.parse_input("fact: (safe " + cell_str_2 + ")")
+                    KB.kb_assert(safe)
 
 
 def playgame():
@@ -223,6 +252,8 @@ def playgame():
         # result = parseinput(prompt, gridsize, helpmessage + '\n')
         _ = input('advance?')
         look_at_board(gridsize, currgrid)
+        # for fact in KB.facts:
+        #     print(fact)
         result = decide_next_move(gridsize, currgrid)
 
 
