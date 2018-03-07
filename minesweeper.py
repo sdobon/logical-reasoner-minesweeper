@@ -181,11 +181,21 @@ def look_at_board(gridsize, currgrid):
 
             try:
                 num = int(currgrid[i][j])
-                _, count_fact = read.parse_input("fact: (bomb_count " + str(num) + ' ' + cell_str + ")")
-                KB.kb_assert(count_fact)
 
                 _, not_safe = read.parse_input("fact: (not_safe " + cell_str + ")")
                 KB.kb_retract(not_safe)
+
+            except ValueError:
+                pass
+
+    for i in range(gridsize):
+        for j in range(gridsize):
+            cell_str = str(i) + '_' + str(j)
+
+            try:
+                num = int(currgrid[i][j])
+                _, count_fact = read.parse_input("fact: (bomb_count " + str(num) + ' ' + cell_str + ")")
+                KB.kb_assert(count_fact)
 
             except ValueError:
                 pass
@@ -198,10 +208,12 @@ def decide_next_move(gridsize, currgrid):
                 cell_str = str(i) + '_' + str(j)
                 _, ask_safe = read.parse_input("fact: (safe " + cell_str + ")")
                 if KB.kb_ask(ask_safe):
+                    print("marking safe " + str([i,j]))
                     return {'cell': (i,j), 'flag': False, 'message': ''}
 
                 _, ask_bomb = read.parse_input("fact: (bomb " + cell_str + ")")
                 if KB.kb_ask(ask_bomb):
+                    print("marking bomb " + str([i,j]))
                     return {'cell': (i,j), 'flag': True, 'message': ''}
     print("guessing...")
     return {'cell': getrandomcell(currgrid), 'flag': False, 'message': ''}
@@ -253,18 +265,19 @@ def playgame():
         _ = input('advance?')
         look_at_board(gridsize, currgrid)
         # for fact in KB.facts:
-        #     print(fact)
+        #     print(7)
         result = decide_next_move(gridsize, currgrid)
-
 
         message = result['message']
         cell = result['cell']
+        print(cell)
 
         if cell:
             print('\n\n')
             rowno, colno = cell
             currcell = currgrid[rowno][colno]
             flag = result['flag']
+            print(flag)
 
             if not grid:
                 grid, mines = setupgrid(gridsize, cell, numberofmines)
