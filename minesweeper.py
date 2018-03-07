@@ -10,16 +10,28 @@ from KB_IE import KnowledgeBase
 
 KB = KnowledgeBase([], [])
 
+non_equivalence = "(not_equal ?a ?b) (not_equal ?a ?c) (not_equal ?a ?d) (not_equal ?a ?e) (not_equal ?a ?f) (not_equal ?a ?g) (not_equal ?a ?h) (not_equal ?a ?i) (not_equal ?b ?a) (not_equal ?b ?c) (not_equal ?b ?d) (not_equal ?b ?e) (not_equal ?b ?f) (not_equal ?b ?g) (not_equal ?b ?h) (not_equal ?b ?i) (not_equal ?c ?a) (not_equal ?c ?b) (not_equal ?c ?d) (not_equal ?c ?e) (not_equal ?c ?f) (not_equal ?c ?g) (not_equal ?c ?h) (not_equal ?c ?i) (not_equal ?d ?a) (not_equal ?d ?b) (not_equal ?d ?c) (not_equal ?d ?e) (not_equal ?d ?f) (not_equal ?d ?g) (not_equal ?d ?h) (not_equal ?d ?i) (not_equal ?e ?a) (not_equal ?e ?b) (not_equal ?e ?c) (not_equal ?e ?d) (not_equal ?e ?f) (not_equal ?e ?g) (not_equal ?e ?h) (not_equal ?e ?i) (not_equal ?f ?a) (not_equal ?f ?b) (not_equal ?f ?c) (not_equal ?f ?d) (not_equal ?f ?e) (not_equal ?f ?g) (not_equal ?f ?h) (not_equal ?f ?i) (not_equal ?g ?a) (not_equal ?g ?b) (not_equal ?g ?c) (not_equal ?g ?d) (not_equal ?g ?e) (not_equal ?g ?f) (not_equa ?g ?h) (not_equal ?g ?i) (not_equal ?h ?a) (not_equal ?h ?b) (not_equal ?h ?c) (not_equal ?h ?d) (not_equal ?h ?e) (not_equal ?h ?f) (not_equal ?h ?g) (not_equal ?h ?i) (not_equal ?i ?a) (not_equal ?i ?b) (not_equal ?i ?c) (not_equal ?i ?d) (not_equal ?i ?e) (not_equal ?i ?f) (not_equal ?i ?g) (not_equal ?i ?h)"
+
+
 _, rule1 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (bomb ?b)) -> (mark_rest_safe ?a)")
 _, rule2 = read.parse_input("rule: ((mark_rest_safe ?a) (adjacent ?b ?a) (unvisited ?b)) -> (safe ?b)")
 
-_, rule3 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (not_safe ?b) (adjacent ?c ?a) (safe ?c) (adjacent ?d ?a) (safe ?d) (adjacent ?e ?a) (safe ?e) (adjacent ?f ?a) (safe ?f) (adjacent ?g ?a) (safe ?g) (adjacent ?h ?a) (safe ?h) (adjacent ?i ?a) (safe ?i)) -> (mark_rest_bombs ?a)")
+_, rule3 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (not_safe ?b) (adjacent ?c ?a) (safe ?c) (adjacent ?d ?a) (safe ?d) (adjacent ?e ?a) (safe ?e) (adjacent ?f ?a) (safe ?f) (adjacent ?g ?a) (safe ?g) (adjacent ?h ?a) (safe ?h) (adjacent ?i ?a) (safe ?i) " + non_equivalence + ") -> (mark_rest_bombs ?a)")
 _, rule4 = read.parse_input("rule: ((mark_rest_bombs ?a) (adjacent ?b ?a) (unvisited ?b)) -> (bomb ?b)")
+
+# _, rulea = read.parse_input("rule: (    (adjacent ?b ?a)) -> (not_equal ?b ?a)")
+# _, ruleb = read.parse_input("rule: ((not_equal ?b ?a) (not_equal ?c ?a)) -> (not_equal ?b ?c)")
+# _, rulec = read.parse_input("rule: ((not_equal ?b ?a) (not_equal ?c ?a)) -> (not_equal ?c ?b)")
+
 
 KB.kb_assert(rule1)
 KB.kb_assert(rule2)
 KB.kb_assert(rule3)
 KB.kb_assert(rule4)
+
+# KB.kb_assert(rulea)
+# KB.kb_assert(ruleb)
+# KB.kb_assert(rulec)
 
 def setupgrid(gridsize, start, numberofmines):
     emptygrid = [['0' for i in range(gridsize)] for i in range(gridsize)]
@@ -231,6 +243,7 @@ def setup_facts(currgrid):
             KB.kb_assert(not_safe)
 
             neighbors = getneighbors_imaginary(currgrid, i, j)
+            #adjacency
             for n in neighbors:
                 cell_str_2 = str(n[0][0]) + '_' + str(n[0][1])
                 _, adj = read.parse_input("fact: (adjacent " + cell_str_2 + ' ' + cell_str + ")")
@@ -239,6 +252,13 @@ def setup_facts(currgrid):
                     _, safe = read.parse_input("fact: (safe " + cell_str_2 + ")")
                     KB.kb_assert(safe)
 
+            #non equivalence
+            for x in range(gridsize):
+                for y in range(gridsize):
+                    cell_str_3 = str(x) + '_' + str(y)
+                    if cell_str != cell_str_3:
+                        _, ne = read.parse_input("fact: (not_equal " + cell_str_3 + ' ' + cell_str + ")")
+                        KB.kb_assert(ne)
 
 def playgame():
     gridsize = 9
@@ -264,8 +284,8 @@ def playgame():
         # result = parseinput(prompt, gridsize, helpmessage + '\n')
         _ = input('advance?')
         look_at_board(gridsize, currgrid)
-        # for fact in KB.facts:
-        #     print(7)
+        for fact in KB.facts:
+            print(fact)
         result = decide_next_move(gridsize, currgrid)
 
         message = result['message']
