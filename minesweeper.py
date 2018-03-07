@@ -9,11 +9,13 @@ from logical_classes import *
 from KB_IE import KnowledgeBase
 
 KB = KnowledgeBase([], [])
-_, fact1 = read.parse_input("fact: (bomb 1_1)")
-_, fact2 = read.parse_input("fact: (safe 2_2)")
 
-KB.kb_assert(fact1)
-KB.kb_assert(fact2)
+_, rule1 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (bomb ?b)) -> (mark_rest_safe ?a)")
+
+_, rule2 = read.parse_input("rule: ((mark_rest_safe ?a) (adjacent ?b ?a) (unvisited ?b)) -> (safe ?b)")
+
+KB.kb_assert(rule1)
+KB.kb_assert(rule2)
 
 def setupgrid(gridsize, start, numberofmines):
     emptygrid = [['0' for i in range(gridsize)] for i in range(gridsize)]
@@ -151,12 +153,18 @@ def parseinput(inputstring, gridsize, helpmessage):
 def look_at_board(gridsize, currgrid):
     for i in range(gridsize):
         for j in range(gridsize):
+            cell_str = str(i) + '_' + str(j)
+
+            if currgrid[i][j] != ' ':
+                _, unvisited = read.parse_input("fact: (unvisited " + cell_str + ")")
+                KB.kb_retract(unvisited)
+
             try:
                 num = int(currgrid[i][j])
-                cell_str = str(i) + '_' + str(j)
                 _, count_fact = read.parse_input("fact: (bomb_count " + str(num) + ' ' + cell_str + ")")
                 KB.kb_assert(count_fact)
-                print(KB.facts)
+                # print(KB.facts)
+
             except ValueError:
                 pass
 
@@ -176,11 +184,28 @@ def decide_next_move(gridsize, currgrid):
     print("guessing...")
     return {'cell': getrandomcell(currgrid), 'flag': False, 'message': ''}
 
+
+def setup_facts(currgrid):
+    gridsize = len(currgrid)
+    for i in range(gridsize):
+        for j in range(gridsize):
+            cell_str = str(i) + '_' + str(j)
+            _, mark_unvisited = read.parse_input("fact: (unvisited " + cell_str + ")")
+            KB.kb_assert(mark_unvisited)
+            neighbors = getneighbors(currgrid, i, j)
+            for n in neighbors:
+                cell_str_2 = str(n[0]) + '_' + str(n[1])
+                _, adj = read.parse_input("fact: (adjacent " + cell_str_2 + ' ' + cell_str + ")")
+                KB.kb_assert(adj)
+
+
 def playgame():
     gridsize = 9
     numberofmines = 10
 
     currgrid = [[' ' for i in range(gridsize)] for i in range(gridsize)]
+
+    setup_facts(currgrid)
 
     grid = []
     flags = []
