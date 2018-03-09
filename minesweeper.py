@@ -10,28 +10,30 @@ from KB_IE import KnowledgeBase
 
 KB = KnowledgeBase([], [])
 
-non_equivalence = "(not_equal ?a ?b) (not_equal ?a ?c) (not_equal ?a ?d) (not_equal ?a ?e) (not_equal ?a ?f) (not_equal ?a ?g) (not_equal ?a ?h) (not_equal ?a ?i) (not_equal ?b ?a) (not_equal ?b ?c) (not_equal ?b ?d) (not_equal ?b ?e) (not_equal ?b ?f) (not_equal ?b ?g) (not_equal ?b ?h) (not_equal ?b ?i) (not_equal ?c ?a) (not_equal ?c ?b) (not_equal ?c ?d) (not_equal ?c ?e) (not_equal ?c ?f) (not_equal ?c ?g) (not_equal ?c ?h) (not_equal ?c ?i) (not_equal ?d ?a) (not_equal ?d ?b) (not_equal ?d ?c) (not_equal ?d ?e) (not_equal ?d ?f) (not_equal ?d ?g) (not_equal ?d ?h) (not_equal ?d ?i) (not_equal ?e ?a) (not_equal ?e ?b) (not_equal ?e ?c) (not_equal ?e ?d) (not_equal ?e ?f) (not_equal ?e ?g) (not_equal ?e ?h) (not_equal ?e ?i) (not_equal ?f ?a) (not_equal ?f ?b) (not_equal ?f ?c) (not_equal ?f ?d) (not_equal ?f ?e) (not_equal ?f ?g) (not_equal ?f ?h) (not_equal ?f ?i) (not_equal ?g ?a) (not_equal ?g ?b) (not_equal ?g ?c) (not_equal ?g ?d) (not_equal ?g ?e) (not_equal ?g ?f) (not_equa ?g ?h) (not_equal ?g ?i) (not_equal ?h ?a) (not_equal ?h ?b) (not_equal ?h ?c) (not_equal ?h ?d) (not_equal ?h ?e) (not_equal ?h ?f) (not_equal ?h ?g) (not_equal ?h ?i) (not_equal ?i ?a) (not_equal ?i ?b) (not_equal ?i ?c) (not_equal ?i ?d) (not_equal ?i ?e) (not_equal ?i ?f) (not_equal ?i ?g) (not_equal ?i ?h)"
+#still mark_rest_bomb bug
+#BUT MARKING DOWN FLAG WHERE FLAG SHOULD NOT BE 
 
+#if we put a flag down, we need to decrease everybody unknown_cells so we retract and then we also take away from everybody unknown_bomb_count
 
-_, rule1 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (bomb ?b)) -> (mark_rest_safe ?a)")
-_, rule2 = read.parse_input("rule: ((mark_rest_safe ?a) (adjacent ?b ?a) (unvisited ?b)) -> (safe ?b)")
+#things are only ever visited once we look at them in the board
 
-_, rule3 = read.parse_input("rule: ((bomb_count 1 ?a) (adjacent ?b ?a) (not_safe ?b) (adjacent ?c ?a) (safe ?c) (adjacent ?d ?a) (safe ?d) (adjacent ?e ?a) (safe ?e) (adjacent ?f ?a) (safe ?f) (adjacent ?g ?a) (safe ?g) (adjacent ?h ?a) (safe ?h) (adjacent ?i ?a) (safe ?i) " + non_equivalence + ") -> (mark_rest_bombs ?a)")
-_, rule4 = read.parse_input("rule: ((mark_rest_bombs ?a) (adjacent ?b ?a) (unvisited ?b)) -> (bomb ?b)")
+_, found_safe_rule = read.parse_input("rule: ((number ?cell ?x) (known_bomb_count ?cell ?x)) -> (mark_rest_safe ?cell)")
+#found_safe_rule if number in cell matches the known bombs then the rest of the cells around it are safe
 
-# _, rulea = read.parse_input("rule: (    (adjacent ?b ?a)) -> (not_equal ?b ?a)")
-# _, ruleb = read.parse_input("rule: ((not_equal ?b ?a) (not_equal ?c ?a)) -> (not_equal ?b ?c)")
-# _, rulec = read.parse_input("rule: ((not_equal ?b ?a) (not_equal ?c ?a)) -> (not_equal ?c ?b)")
+_, set_bomb_rule = read.parse_input("rule: ((unknown_bomb_count ?cell ?x) (unknown_cells ?cell ?x)) -> (mark_rest_bomb ?cell)")
+#set_bomb_rule if the # of unknown cells around the cell matches unknown bomb count, they must all be bombs
 
+_, mark_rest_bomb = read.parse_input("rule: ((mark_rest_bomb ?cell_1) (adjacent ?cell_1 ?cell_2) (unvisited ?cell_2) -> (bomb ?cell_2)")
+#if the cell has been mark_rest_bomb and some cell is adjacent to it, and we have not visited, the cell is a bomb
+_, mark_rest_safe = read.parse_input("rule: ((mark_rest_safe ?cell_1) (adjacent ?cell_1 ?cell_2) (unvisited ?cell_2)) -> (safe ?cell_2)")
+_, adjacent = read.parse_input("rule: ((adjacent ?cell_1 ?cell_2)) -> (adjacent ?cell_2 ?cell_1)")
 
-KB.kb_assert(rule1)
-KB.kb_assert(rule2)
-KB.kb_assert(rule3)
-KB.kb_assert(rule4)
+KB.kb_assert(found_safe_rule)
+KB.kb_assert(set_bomb_rule)
+KB.kb_assert(mark_rest_bomb)
+KB.kb_assert(mark_rest_safe)
+KB.kb_assert(adjacent)
 
-# KB.kb_assert(rulea)
-# KB.kb_assert(ruleb)
-# KB.kb_assert(rulec)
 
 def setupgrid(gridsize, start, numberofmines):
     emptygrid = [['0' for i in range(gridsize)] for i in range(gridsize)]
@@ -182,83 +184,146 @@ def parseinput(inputstring, gridsize, helpmessage):
     return {'cell': cell, 'flag': flag, 'message': message}
 
 
-def look_at_board(gridsize, currgrid):
-    for i in range(gridsize):
-        for j in range(gridsize):
-            cell_str = str(i) + '_' + str(j)
+def look_at_board(gridsize, currgrid, oldgrid):
 
-            if currgrid[i][j] != ' ':
-                _, unvisited = read.parse_input("fact: (unvisited " + cell_str + ")")
-                KB.kb_retract(unvisited)
+    #mark all new additions visited
+    for i in range(0, gridsize):
+        for j in range(0, gridsize):
+            if currgrid[i][j] != oldgrid[i][j]: #we found a new change
+                cell_str = str(i) + '_' + str(j) #name of cell changed
 
-            try:
-                num = int(currgrid[i][j])
+                _, unvisited_fact = read.parse_input("fact: (unvisited " + cell_str + ")") #we are now visiting that fact
+                KB.kb_retract(unvisited_fact) #retract the visit
 
-                _, not_safe = read.parse_input("fact: (not_safe " + cell_str + ")")
-                KB.kb_retract(not_safe)
 
-            except ValueError:
-                pass
+    #add new number facts for all numbers added and unknown_bomb_count
+    for i in range(0, gridsize):
+        for j in range(0, gridsize):
+            if currgrid[i][j] != oldgrid[i][j]: #we found a new change
+                cell_str = str(i) + '_' + str(j) #name of cell changed
 
-    for i in range(gridsize):
-        for j in range(gridsize):
-            cell_str = str(i) + '_' + str(j)
+                try:
+                    num = int(currgrid[i][j]) #see if a number is there
+                    _, count_fact = read.parse_input("fact: (number " + cell_str + ' ' + str(num) + ")")
+                    KB.kb_assert(count_fact) #if so add the number and cell as a fact
 
-            try:
-                num = int(currgrid[i][j])
-                _, count_fact = read.parse_input("fact: (bomb_count " + str(num) + ' ' + cell_str + ")")
-                KB.kb_assert(count_fact)
+                    for k in range(0, 9):
+                        _, ask_bombs = read.parse_input("fact: (known_bomb_count " + cell_str + ' ' + str(k) + ")")
+                        if KB.kb_ask(ask_bombs): #find the known bomb count
+                            _, unknown_bombs = read.parse_input("fact: (unknown_bomb_count " + cell_str + ' ' + str(num - k) + ")")
+                            KB.kb_assert(unknown_bombs) #assert the unknown bomb count
+                            break
+                except ValueError:
+                    continue
 
-            except ValueError:
-                pass
+    #update neighbor's unknown cells
+    for i in range(0, gridsize):
+        for j in range(0, gridsize):
+            if currgrid[i][j] != oldgrid[i][j]:
+                neighbors = getneighbors(currgrid, i, j)
+                for n in neighbors:
+                    cell_str_n = str(n[0]) + '_' + str(n[1])  # cell_str of neighbor
+                    for l in range(0, 9):
+                        _, ask_unknown_cells = read.parse_input("fact: (unknown_cells " + cell_str_n + ' ' + str(l) + ")")
+                        if KB.kb_ask(ask_unknown_cells):  # find the unknown_cells
+                            KB.kb_retract(ask_unknown_cells)  # take away unknown_cells
+                            _, new_unknown_cells = read.parse_input("fact: (unknown_cells " + cell_str_n + ' ' + str(l - 1) + ")")
 
+                            KB.kb_assert(new_unknown_cells)
+                            break
+
+    #update bomb_count of neighbor cells
+    for i in range(0, gridsize):
+        for j in range(0, gridsize):
+            if currgrid[i][j] != oldgrid[i][j]:
+                if currgrid[i][j] == 'F':
+                    neighbors = getneighbors(currgrid, i, j)
+                    for n in neighbors:
+                        cell_str_n = str(n[0]) + '_' + str(n[1])
+                        for m in range (0, 9):
+
+                            _, ask_bomb_num = read.parse_input("fact: (known_bomb_count " + cell_str_n + ' ' + str(m) + ")")
+                            if KB.kb_ask(ask_bomb_num):
+                                KB.kb_retract(ask_bomb_num)
+                                _, new_bomb_num = read.parse_input("fact: (known_bomb_count " + cell_str_n + ' ' + str(m + 1) + ")")
+                                KB.kb_assert(new_bomb_num)
+                                break
+
+    for i in range(0, gridsize):
+        for j in range(0, gridsize):
+            if currgrid[i][j] != oldgrid[i][j]:
+                if currgrid[i][j] == 'F':
+                    neighbors = getneighbors(currgrid, i, j)
+                    for n in neighbors:
+                        cell_str_n = str(n[0]) + '_' + str(n[1])
+                        for p in range (0, 9):
+                            _, ask_bomb_num_unknown = read.parse_input("fact: (unknown_bomb_count " + cell_str_n + ' ' + str(p) + ")")
+                            if KB.kb_ask(ask_bomb_num_unknown):
+                                KB.kb_retract(ask_bomb_num_unknown)
+                                _, new_bomb_num_unknown = read.parse_input("fact: (unknown_bomb_count " + cell_str_n + ' ' + str(p - 1) + ")")
+                                KB.kb_assert(new_bomb_num_unknown)
+                                break
+
+
+
+
+def guess_move(currgrid):
+    print("guessing...")
+
+    while True:
+
+        cell = getrandomcell(currgrid)
+        cell_string = str(cell[0]) + '_' + str(cell[1])
+        _, ask_unvisited = read.parse_input("fact: (unvisited " + cell_string + ")")
+        if KB.kb_ask(ask_unvisited):
+            return {'cell': getrandomcell(currgrid), 'flag': False, 'message': ''}
 
 def decide_next_move(gridsize, currgrid):
     for i in range(gridsize):
         for j in range(gridsize):
             if currgrid[i][j] == ' ':
                 cell_str = str(i) + '_' + str(j)
+
+
                 _, ask_safe = read.parse_input("fact: (safe " + cell_str + ")")
+
                 if KB.kb_ask(ask_safe):
-                    print("marking safe " + str([i,j]))
+
                     return {'cell': (i,j), 'flag': False, 'message': ''}
 
                 _, ask_bomb = read.parse_input("fact: (bomb " + cell_str + ")")
                 if KB.kb_ask(ask_bomb):
-                    print("marking bomb " + str([i,j]))
+
                     return {'cell': (i,j), 'flag': True, 'message': ''}
-    print("guessing...")
-    return {'cell': getrandomcell(currgrid), 'flag': False, 'message': ''}
+    return guess_move(currgrid)
+
+
 
 
 def setup_facts(currgrid):
     gridsize = len(currgrid)
     for i in range(gridsize):
-        for j in range(gridsize):
-            cell_str = str(i) + '_' + str(j)
-            _, mark_unvisited = read.parse_input("fact: (unvisited " + cell_str + ")")
-            KB.kb_assert(mark_unvisited)
+        for j in range(gridsize): #loop through grid
+            cell_str = str(i) + '_' + str(j) #cell_str
 
-            _, not_safe = read.parse_input("fact: (not_safe " + cell_str + ")")
-            KB.kb_assert(not_safe)
+            _, known_bomb_count = read.parse_input("fact: (known_bomb_count " + cell_str + " 0)")
+            KB.kb_assert(known_bomb_count) #assert the known_bomb_count of each cell to be 0
 
-            neighbors = getneighbors_imaginary(currgrid, i, j)
+            _, unvisited_fact = read.parse_input("fact: (unvisited " + cell_str + ")")
+            KB.kb_assert(unvisited_fact) #assert each cell to be unvisited
+
+
+            neighbors = getneighbors(currgrid, i, j)
+
+            _, unknown_cells = read.parse_input("fact: (unknown_cells " + cell_str + ' ' + str(len(neighbors)) + " )")
+            KB.kb_assert(unknown_cells) #assert unknown_cells of each cell to be exactly the size of neighbor
             #adjacency
             for n in neighbors:
-                cell_str_2 = str(n[0][0]) + '_' + str(n[0][1])
+
+                cell_str_2 = str(n[0]) + '_' + str(n[1])
                 _, adj = read.parse_input("fact: (adjacent " + cell_str_2 + ' ' + cell_str + ")")
                 KB.kb_assert(adj)
-                if n[1] == "imaginary":
-                    _, safe = read.parse_input("fact: (safe " + cell_str_2 + ")")
-                    KB.kb_assert(safe)
 
-            #non equivalence
-            for x in range(gridsize):
-                for y in range(gridsize):
-                    cell_str_3 = str(x) + '_' + str(y)
-                    if cell_str != cell_str_3:
-                        _, ne = read.parse_input("fact: (not_equal " + cell_str_3 + ' ' + cell_str + ")")
-                        KB.kb_assert(ne)
 
 def playgame():
     gridsize = 9
@@ -279,14 +344,15 @@ def playgame():
     print(helpmessage + " Type 'help' to show this message again.\n")
 
     while True:
+        oldgrid = copy.deepcopy(currgrid)
         minesleft = numberofmines - len(flags)
         # prompt = input('Enter the cell ({} mines left): '.format(minesleft))
         # result = parseinput(prompt, gridsize, helpmessage + '\n')
-        _ = input('advance?')
-        look_at_board(gridsize, currgrid)
-        for fact in KB.facts:
-            print(fact)
+        #_ = input('advance?')
+
         result = decide_next_move(gridsize, currgrid)
+        if result['flag']:
+            print "WE ARE FLAGGING"
 
         message = result['message']
         cell = result['cell']
@@ -344,7 +410,18 @@ def playgame():
                     playgame()
                 return
 
+
+
+
+
+        look_at_board(gridsize, currgrid, oldgrid)
+        # for fact in KB.facts:
+        #     if "adjacent" not in str(fact.statement):
+        #         print fact
+
         showgrid(currgrid)
         print(message)
+
+
 
 playgame()

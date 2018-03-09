@@ -117,11 +117,13 @@ class KnowledgeBase(object):
 
         if not fact_rule.supported_by:
             if not fact_rule.asserted:
-                print fact_rule
+                # print fact_rule
                 if isinstance(fact_rule, Fact):
-                    self.facts.remove(fact_rule) #remove rule from kb
+                    if (fact_rule in self.facts):
+                        self.facts.remove(fact_rule) #remove rule from kb
                 else:
-                    self.rules.remove(fact_rule)
+                    if (fact_rule in self.rules):
+                        self.rules.remove(fact_rule)
 
 
                 for fact in fact_rule.supports_facts: #check all facts that the rule supports
