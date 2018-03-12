@@ -60,7 +60,7 @@ def showgrid(grid):
     for i in ascii_lowercase[:gridsize]:
         toplabel = toplabel + i + '   '
 
-    # print(toplabel + '\n' + horizontal)
+    print(toplabel + '\n' + horizontal)
 
     # Print left row numbers
     for idx, i in enumerate(grid):
@@ -69,9 +69,9 @@ def showgrid(grid):
         for j in i:
             row = row + ' ' + j + ' |'
 
-        # print(row + '\n' + horizontal)
+        print(row + '\n' + horizontal)
 
-    # print('')
+    print('')
 
 
 def getrandomcell(grid):
@@ -269,7 +269,7 @@ def look_at_board(gridsize, currgrid, oldgrid, KB):
 
 
 def guess_move(currgrid, KB):
-    # print("guessing...")
+
 
     while True:
 
@@ -277,6 +277,7 @@ def guess_move(currgrid, KB):
         cell_string = str(cell[0]) + '_' + str(cell[1])
         _, ask_unvisited = read.parse_input("fact: (unvisited " + cell_string + ")")
         if KB.kb_ask(ask_unvisited):
+            print("guessing...")
             return {'cell': getrandomcell(currgrid), 'flag': False, 'message': ''}
 
 def decide_next_move(gridsize, currgrid, KB):
@@ -289,11 +290,13 @@ def decide_next_move(gridsize, currgrid, KB):
                 _, ask_safe = read.parse_input("fact: (safe " + cell_str + ")")
 
                 if KB.kb_ask(ask_safe):
+                    print("Clicking safe square")
 
                     return {'cell': (i,j), 'flag': False, 'message': ''}
 
                 _, ask_bomb = read.parse_input("fact: (bomb " + cell_str + ")")
                 if KB.kb_ask(ask_bomb):
+                    print("Flagging bomb")
 
                     return {'cell': (i,j), 'flag': True, 'message': ''}
     return guess_move(currgrid, KB)
@@ -420,15 +423,12 @@ def playgame():
 
                 return (1, seconds)
 
-                # showgrid(grid)
+
                 # if playagain():
                 #     playgame()
                 # return
 
-
-
-
-
+        showgrid(currgrid)
         look_at_board(gridsize, currgrid, oldgrid, KB)
         # for fact in KB.facts:
         #     if "adjacent" not in str(fact.statement):
