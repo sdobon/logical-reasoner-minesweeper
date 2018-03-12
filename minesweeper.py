@@ -8,10 +8,11 @@ import read, copy
 from logical_classes import *
 from KB_IE import KnowledgeBase
 
-KB = KnowledgeBase([], [])
+
+# KB = KnowledgeBase([], [])
 
 #still mark_rest_bomb bug
-#BUT MARKING DOWN FLAG WHERE FLAG SHOULD NOT BE 
+#BUT MARKING DOWN FLAG WHERE FLAG SHOULD NOT BE
 
 #if we put a flag down, we need to decrease everybody unknown_cells so we retract and then we also take away from everybody unknown_bomb_count
 
@@ -27,12 +28,12 @@ _, mark_rest_bomb = read.parse_input("rule: ((mark_rest_bomb ?cell_1) (adjacent 
 #if the cell has been mark_rest_bomb and some cell is adjacent to it, and we have not visited, the cell is a bomb
 _, mark_rest_safe = read.parse_input("rule: ((mark_rest_safe ?cell_1) (adjacent ?cell_1 ?cell_2) (unvisited ?cell_2)) -> (safe ?cell_2)")
 _, adjacent = read.parse_input("rule: ((adjacent ?cell_1 ?cell_2)) -> (adjacent ?cell_2 ?cell_1)")
-
-KB.kb_assert(found_safe_rule)
-KB.kb_assert(set_bomb_rule)
-KB.kb_assert(mark_rest_bomb)
-KB.kb_assert(mark_rest_safe)
-KB.kb_assert(adjacent)
+#
+# KB.kb_assert(found_safe_rule)
+# KB.kb_assert(set_bomb_rule)
+# KB.kb_assert(mark_rest_bomb)
+# KB.kb_assert(mark_rest_safe)
+# KB.kb_assert(adjacent)
 
 
 def setupgrid(gridsize, start, numberofmines):
@@ -59,7 +60,7 @@ def showgrid(grid):
     for i in ascii_lowercase[:gridsize]:
         toplabel = toplabel + i + '   '
 
-    print(toplabel + '\n' + horizontal)
+    # print(toplabel + '\n' + horizontal)
 
     # Print left row numbers
     for idx, i in enumerate(grid):
@@ -68,9 +69,9 @@ def showgrid(grid):
         for j in i:
             row = row + ' ' + j + ' |'
 
-        print(row + '\n' + horizontal)
+        # print(row + '\n' + horizontal)
 
-    print('')
+    # print('')
 
 
 def getrandomcell(grid):
@@ -184,7 +185,7 @@ def parseinput(inputstring, gridsize, helpmessage):
     return {'cell': cell, 'flag': flag, 'message': message}
 
 
-def look_at_board(gridsize, currgrid, oldgrid):
+def look_at_board(gridsize, currgrid, oldgrid, KB):
 
     #mark all new additions visited
     for i in range(0, gridsize):
@@ -267,8 +268,8 @@ def look_at_board(gridsize, currgrid, oldgrid):
 
 
 
-def guess_move(currgrid):
-    print("guessing...")
+def guess_move(currgrid, KB):
+    # print("guessing...")
 
     while True:
 
@@ -278,7 +279,7 @@ def guess_move(currgrid):
         if KB.kb_ask(ask_unvisited):
             return {'cell': getrandomcell(currgrid), 'flag': False, 'message': ''}
 
-def decide_next_move(gridsize, currgrid):
+def decide_next_move(gridsize, currgrid, KB):
     for i in range(gridsize):
         for j in range(gridsize):
             if currgrid[i][j] == ' ':
@@ -295,12 +296,12 @@ def decide_next_move(gridsize, currgrid):
                 if KB.kb_ask(ask_bomb):
 
                     return {'cell': (i,j), 'flag': True, 'message': ''}
-    return guess_move(currgrid)
+    return guess_move(currgrid, KB)
 
 
 
 
-def setup_facts(currgrid):
+def setup_facts(currgrid, KB):
     gridsize = len(currgrid)
     for i in range(gridsize):
         for j in range(gridsize): #loop through grid
@@ -326,12 +327,20 @@ def setup_facts(currgrid):
 
 
 def playgame():
+
+    KB = KnowledgeBase([], [])
+    KB.kb_assert(found_safe_rule)
+    KB.kb_assert(set_bomb_rule)
+    KB.kb_assert(mark_rest_bomb)
+    KB.kb_assert(mark_rest_safe)
+    KB.kb_assert(adjacent)
+
     gridsize = 9
     numberofmines = 10
 
     currgrid = [[' ' for i in range(gridsize)] for i in range(gridsize)]
 
-    setup_facts(currgrid)
+    setup_facts(currgrid, KB)
 
     grid = []
     flags = []
@@ -340,8 +349,8 @@ def playgame():
     helpmessage = ("Type the column followed by the row (eg. a5). "
                    "To put or remove a flag, add 'f' to the cell (eg. a5f).")
 
-    showgrid(currgrid)
-    print(helpmessage + " Type 'help' to show this message again.\n")
+    # showgrid(currgrid)
+    # print(helpmessage + " Type 'help' to show this message again.\n")
 
     while True:
         oldgrid = copy.deepcopy(currgrid)
@@ -350,20 +359,21 @@ def playgame():
         # result = parseinput(prompt, gridsize, helpmessage + '\n')
         #_ = input('advance?')
 
-        result = decide_next_move(gridsize, currgrid)
-        if result['flag']:
-            print "WE ARE FLAGGING"
+        result = decide_next_move(gridsize, currgrid, KB)
+
+        # if result['flag']:
+        #     print "WE ARE FLAGGING"
 
         message = result['message']
         cell = result['cell']
-        print(cell)
+        # print(cell)
 
         if cell:
-            print('\n\n')
+            # print('\n\n')
             rowno, colno = cell
             currcell = currgrid[rowno][colno]
             flag = result['flag']
-            print(flag)
+            # print(flag)
 
             if not grid:
                 grid, mines = setupgrid(gridsize, cell, numberofmines)
@@ -388,10 +398,12 @@ def playgame():
 
             elif grid[rowno][colno] == 'X':
                 print('Game Over\n')
-                showgrid(grid)
-                if playagain():
-                    playgame()
-                return
+
+                return (0, 0)
+                # showgrid(grid)
+                # if playagain():
+                #     playgame()
+                # return
 
             elif currcell == ' ':
                 showcells(grid, currgrid, rowno, colno)
@@ -402,26 +414,47 @@ def playgame():
             if set(flags) == set(mines):
                 minutes, seconds = divmod(int(time.time() - starttime), 60)
                 print(
-                    'You Win. '
-                    'It took you {} minutes and {} seconds.\n'.format(minutes,
-                                                                      seconds))
-                showgrid(grid)
-                if playagain():
-                    playgame()
-                return
+                    'You Win. ')
+                    # 'It took you {} minutes and {} seconds.\n'.format(minutes,
+                    #                                                   seconds))
+
+                return (1, seconds)
+
+                # showgrid(grid)
+                # if playagain():
+                #     playgame()
+                # return
 
 
 
 
 
-        look_at_board(gridsize, currgrid, oldgrid)
+        look_at_board(gridsize, currgrid, oldgrid, KB)
         # for fact in KB.facts:
         #     if "adjacent" not in str(fact.statement):
         #         print fact
 
-        showgrid(currgrid)
-        print(message)
+        # showgrid(currgrid)
+        # print(message)
 
 
 
-playgame()
+def measure1000():
+    wins = 0
+    total_games = 0
+    seconds = 0
+
+    for i in range(0, 100):
+        result = playgame()
+        total_games = total_games + 1
+        if result[0] == 1:
+            wins = wins + 1
+            seconds = seconds + result[1]
+
+    print("Win Percentage: " + str(wins/total_games * 100) + "% " + " Average game time: " + str(seconds/wins))
+
+
+
+
+# playgame()
+measure1000()
