@@ -1,0 +1,2 @@
+minesweeper.py: Prompts user for number of games to play. Plays that number and returns win percentage and average time to win a game.
+minesweeper_print.py: Same as minesweeper.py with added print statements of the board.
