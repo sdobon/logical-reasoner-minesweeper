@@ -136,24 +136,6 @@ class KnowledgeBase(object):
                             supported_rule.supported_by.remove(supported) #remove from the supported rull that support
                     self.kb_remove_fact_rule(supported_rule)
 
-    # def kb_remove_fact(self, fact_to_retract):
-    #     if not fact_to_retract.supported_by:  # has no support
-    #         if not fact_to_retract.asserted:
-    #             self.facts.remove(fact_to_retract)  # remove from facts in kb
-    #
-    #             for fact in fact_to_retract.supports_facts:  # look at all facts that the fact we removed support
-    #                 for supported in fact.supported_by:  # for each fact, look at what supports that fact
-    #                     if fact_to_retract in supported:  # see if our fact is in the support
-    #                         fact.supported_by.remove(supported)  # if so go into the supported by of that fact and remove the support
-    #                 self.kb_remove_fact(fact)  # re   curse on that fact
-    #
-    #             for rule in fact_to_retract.supports_rules:  # look at all rules that our fact we remove supports
-    #                 for supported in rule.supported_by:  # for each rule, look at what supports that rule
-    #                     if fact_to_retract in supported:  # if the fact is in that support
-    #                         rule.supported_by.remove(supported)  # remove that support from the rules support
-    #                 self.kb_remove_rule(rule)
-
-
 
     def kb_retract(self, statement):
         """Retract a fact from the KB

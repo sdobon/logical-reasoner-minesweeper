@@ -331,7 +331,7 @@ def playgame():
 
     while True:
         oldgrid = copy.deepcopy(currgrid)
-
+        time.sleep(2)
         result = decide_next_move(gridsize, currgrid, KB)
 
 
