@@ -403,11 +403,8 @@ def measure():
         if result[0] == 1:
             wins = wins + 1
             seconds = seconds + result[1]
-
-    if wins == 0:
-        print("Number of games: " + str(number_games) + ", Win Percentage: " + str(
-            float(float(wins) / float(total_games)) * 100) + "%, " + " Average game time: No games won")
-    else:
-        print("Number of games: " + str(number_games) + ", Win Percentage: " + str(float(float(wins)/float(total_games)) * 100) + "%, " + " Average game time: " + str(float(seconds/wins)))
+        
+        
+    print("Number of games: " + str(number_games) + ", Win Percentage: " + str(float(float(wins)/float(total_games)) * 100) + "%, " + " Average game time: " + str(float(seconds/wins)))
 
 measure()
